@@ -1,0 +1,228 @@
+//package HMM;
+
+// The Program will contain two files namely model file which consists of no of states, Initial Probabilities
+// Transition State probabilities, No of observations, observation probabilities.
+// Second file will contain the observation sequence based on which we need to predict the most likely sequence.
+
+//Developed by Yogesh Jeswani
+//Net id: ykj140030
+//Machine Learning: Homework 4(part 2)
+
+import java.io.*;
+
+public class HMM {
+
+	public static void main(String args[]) throws NumberFormatException, IOException{
+		
+		if(args.length!=2){
+			
+			System.out.println("Please check the Arguments you have passed");
+		}
+		
+		String file1=args[0];
+		FileReader fr=new FileReader(new File(file1));
+		
+		BufferedReader br=new BufferedReader(fr);
+		
+		// No of States 
+		int states=Integer.parseInt(br.readLine());
+		
+		//Initial State Probabilities
+		String[] pivector= br.readLine().split(" ");
+		
+		
+		float[] initialpi=new float[states];
+		
+		//Transition Probailities
+		String[] trans=br.readLine().split(" ");
+		
+		//No of Observations
+		int observations=Integer.parseInt(br.readLine());
+		
+		//observation names
+		String[] observenames=br.readLine().split(" ");
+		
+		
+		//Creating array for Initial probabilities
+		for(int i=0; i<pivector.length;i++){
+			initialpi[i]=Float.parseFloat(pivector[i]);
+		}
+		
+		//2D array for transition states
+		float[][] transimat=new float[states][states];
+		
+		int k=0;
+		
+		for(int i=0;i< states;i++){
+			
+			for(int j=0;j<states;j++){
+				
+				transimat[i][j]=Float.parseFloat(trans[k++]);
+			}
+		}
+		
+		
+		String observprob[]=br.readLine().split(" ");
+		
+		// 2D array for Observation probabilities
+		float[][] observationprob=new float[states][observations];
+		
+		k=0;
+		
+		for(int i=0;i<states;i++){
+			
+			for(int j=0;j<observations;j++){
+				
+				observationprob[i][j]=Float.parseFloat(observprob[k++]);
+				
+			}
+		}
+			
+		String file2=args[1];
+		
+		//Reading from Test File
+      fr=new FileReader(new File(file2));
+		
+	  br=new BufferedReader(fr);
+	  
+	  //Array for calculating probabilities at each state
+	  float[] eachstateprob=new float[states];
+	  
+	  //Array for transition probabilities at every state
+	  float[] current=new float[states];
+	  
+	  String s=null;
+	  
+	  // Reading from test file
+	  while((s=br.readLine())!=null){
+		  
+		  int state=0;
+		  String last=s;
+		  
+		  String sequence=s.replaceAll("\\s", "");
+		  
+		  int seqno=0;
+		  
+		  for(int i=0;i< observenames.length;i++){
+			  
+			  if(observenames[i].charAt(0)==sequence.charAt(0)){
+				  seqno=i;
+				  break;
+			  }
+		  }
+		  
+		  // 2D array for holding a max state at every stage
+		  int[][] backtracking=new int[states][sequence.length()];
+		  
+		  int max=0;
+		  float t=0;
+		   for(int i=0;i<states;i++){
+			
+			   //calculating current prob 
+		 current[i]=initialpi[i]*observationprob[i][seqno];
+		 
+		// System.out.println(current[i]+" current value");
+			  
+			  if(current[i]>=t){
+				  max=i;
+				  t=current[i];
+				 // System.out.println(t+"inside if");
+			  }
+			  
+		  }
+		  
+		   for(int i=0;i<states;i++){
+			  
+			  backtracking[i][0]=max;
+			//  System.out.println(max+"max");
+		  }
+		  
+		  
+		    for(int i=1;i<sequence.length();i++){
+			  
+			  seqno=0;
+			  
+			  for(int j=0;j<observenames.length;j++){
+				  
+				  if(observenames[j].charAt(0)==sequence.charAt(i)){
+					  
+					  seqno=j;
+					  break;
+				  }
+			  }
+			  
+			  
+			  for(int p=0;p<states;p++){
+				  
+				  float timemax=0;
+				  
+				  for(int q=0;q<states;q++){
+					  
+					  float temp= current[q]*transimat[q][p]*observationprob[p][seqno];
+					  
+					  if(temp>timemax){
+						  
+						  state=q;
+						  timemax=temp;
+						 // System.out.println(p+ "State");
+						  
+					  }
+					  
+			 }
+				  
+				  eachstateprob[p]=timemax;
+				  backtracking[p][i]=state;
+				 // System.out.println(backtracking[p][i]+"new stte");
+				  
+				  
+			  }
+			  
+			  current=eachstateprob.clone();
+			  
+		  }
+		  
+		  float finalm=0;
+		  int finalstate=0;
+		  
+		  for(int i=0;i<states;i++){
+			  
+			  if(current[i]>=finalm){
+				  finalm=current[i];
+				  finalstate=i;
+				//  System.out.println(i+"final"+ finalm+"final val");
+			  }
+			  
+		  }
+		  
+		  int currentstate=finalstate;
+		  
+		  // Creating a Sequence String using String Builder
+		  StringBuilder newstate=new StringBuilder();
+		  
+		  for(int i=sequence.length()-1;i>=0;i--){
+			  
+			  if(i==0){
+				  
+				  newstate.insert(0,"S"+ String.valueOf(currentstate+1));
+				  
+				}else {
+					
+					newstate.insert(0,"-->S"+String.valueOf(currentstate+1));
+					currentstate=backtracking[currentstate][i];
+					
+				}
+			  
+			    }
+		  
+		  System.out.println(last);
+		  System.out.println("State Sequence probable for given Observation is as follows");
+		  
+		  //This will print the most likely hidden states probable for the given observations based on
+		  // probabilities
+		  System.out.println(newstate);
+		  System.out.println();
+		  System.out.println();
+		  
+		 }
+	  }
+	}
